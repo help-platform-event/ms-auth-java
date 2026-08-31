@@ -1,0 +1,16 @@
+services:
+  mysql:
+    image: 'mysql:8.4'
+    environment:
+      MYSQL_DATABASE: 'ms_auth'
+      MYSQL_USER: 'ms_auth'
+      MYSQL_PASSWORD: 'ms_auth'
+      MYSQL_ROOT_PASSWORD: 'root'
+    # Host port 3307 (not 3306) to avoid clashing with any MySQL already on 3306.
+    ports:
+      - '3307:3306'
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-uroot', '-proot']
+      interval: 5s
+      timeout: 5s
+      retries: 10
