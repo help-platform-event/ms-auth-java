@@ -1,17 +1,20 @@
 package com.maxime.help.msauth.infrastructure.security;
 
-import com.maxime.help.msauth.domain.port.out.AccessTokenIssuer;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.maxime.help.msauth.domain.port.out.AccessTokenIssuer;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /** Populates the {@link SecurityContextHolder} from a valid {@code Authorization: Bearer} token. */
 class JwtAuthenticationFilter extends OncePerRequestFilter {

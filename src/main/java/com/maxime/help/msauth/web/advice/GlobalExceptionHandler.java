@@ -1,13 +1,15 @@
 package com.maxime.help.msauth.web.advice;
 
-import com.maxime.help.msauth.application.exception.AuthApplicationException;
-import com.maxime.help.msauth.domain.port.out.GoogleAuthenticationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.maxime.help.msauth.application.exception.AuthApplicationException;
+import com.maxime.help.msauth.domain.port.out.GoogleAuthenticationException;
+
 @RestControllerAdvice
+@SuppressWarnings("unused")
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(AuthApplicationException.class)

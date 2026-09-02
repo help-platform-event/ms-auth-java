@@ -1,5 +1,13 @@
 package com.maxime.help.msauth.web.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.maxime.help.msauth.application.service.AuthenticationService;
 import com.maxime.help.msauth.application.service.TokenPair;
 import com.maxime.help.msauth.domain.port.out.AccessTokenClaims;
@@ -10,17 +18,12 @@ import com.maxime.help.msauth.web.dto.RefreshRequest;
 import com.maxime.help.msauth.web.dto.SigninRequest;
 import com.maxime.help.msauth.web.dto.SignupRequest;
 import com.maxime.help.msauth.web.dto.TokenPairResponse;
+
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
+@SuppressWarnings("unused")
 class AuthController {
 
     private final AuthenticationService authenticationService;
