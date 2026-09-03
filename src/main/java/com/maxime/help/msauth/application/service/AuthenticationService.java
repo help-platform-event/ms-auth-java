@@ -18,9 +18,16 @@ import com.maxime.help.msauth.application.exception.InvalidCredentialsException;
 import com.maxime.help.msauth.application.exception.InvalidRefreshTokenException;
 import com.maxime.help.msauth.application.exception.PasswordChangeNotAllowedException;
 import com.maxime.help.msauth.application.exception.UserNotFoundException;
+import com.maxime.help.msauth.domain.event.LoggedOutEvent;
+import com.maxime.help.msauth.domain.event.LoginFailedEvent;
+import com.maxime.help.msauth.domain.event.LoginSucceededEvent;
+import com.maxime.help.msauth.domain.event.PasswordChangedEvent;
+import com.maxime.help.msauth.domain.event.TokenRefreshedEvent;
+import com.maxime.help.msauth.domain.event.UserRegisteredEvent;
 import com.maxime.help.msauth.domain.model.RefreshToken;
 import com.maxime.help.msauth.domain.model.User;
 import com.maxime.help.msauth.domain.port.out.AccessTokenIssuer;
+import com.maxime.help.msauth.domain.port.out.DomainEventPublisher;
 import com.maxime.help.msauth.domain.port.out.GoogleIdentity;
 import com.maxime.help.msauth.domain.port.out.GoogleIdentityProvider;
 import com.maxime.help.msauth.domain.port.out.PasswordHasher;
@@ -45,6 +52,7 @@ public class AuthenticationService {
     private final TokenHasher tokenHasher;
     private final AccessTokenIssuer accessTokenIssuer;
     private final GoogleIdentityProvider googleIdentityProvider;
+    private final DomainEventPublisher eventPublisher;
     private final Clock clock;
     private final Duration refreshTokenTtl;
 
@@ -55,6 +63,7 @@ public class AuthenticationService {
             TokenHasher tokenHasher,
             AccessTokenIssuer accessTokenIssuer,
             GoogleIdentityProvider googleIdentityProvider,
+            DomainEventPublisher eventPublisher,
             Clock clock,
             @Value("${app.auth.refresh-token.ttl}") Duration refreshTokenTtl) {
         this.userRepository = userRepository;
@@ -63,6 +72,7 @@ public class AuthenticationService {
         this.tokenHasher = tokenHasher;
         this.accessTokenIssuer = accessTokenIssuer;
         this.googleIdentityProvider = googleIdentityProvider;
+        this.eventPublisher = eventPublisher;
         this.clock = clock;
         this.refreshTokenTtl = refreshTokenTtl;
     }
@@ -74,20 +84,35 @@ public class AuthenticationService {
         }
         User user = User.register(email, passwordHasher.hash(rawPassword));
         user.getProfile().changeName(firstName, lastName);
-        return userRepository.save(user).getId();
+        User saved = userRepository.save(user);
+        eventPublisher.publish(
+                new UserRegisteredEvent(UUID.randomUUID(), clock.instant(), saved.getId(), saved.getEmail()));
+        return saved.getId();
     }
 
-    @Transactional
+    /**
+     * {@code noRollbackFor} {@link InvalidCredentialsException}: that exception is only ever
+     * thrown before any write happens in this method, so there's nothing to protect via rollback.
+     * Letting the transaction commit as a harmless no-op on that path (instead of rolling back)
+     * means {@link com.maxime.help.msauth.domain.port.out.DomainEventPublisher}'s after-commit
+     * gating still fires for {@link LoginFailedEvent} — without this, the propagated exception
+     * would mark the transaction rollback-only and the event would be silently dropped. Plain
+     * {@code @Transactional} is still required (not just for that): without it, the Hibernate
+     * session backing {@code UserRepositoryAdapter.findByEmail}'s lazy {@code Profile} closes
+     * before the entity-to-domain mapping runs, throwing {@code LazyInitializationException}.
+     */
+    @Transactional(noRollbackFor = InvalidCredentialsException.class)
     public TokenPair login(String email, String rawPassword) {
-        User user =
-                userRepository
-                        .findByEmail(email)
-                        .filter(User::hasPassword)
-                        .orElseThrow(InvalidCredentialsException::new);
-        if (!passwordHasher.matches(rawPassword, user.getPasswordHash())) {
+        Optional<User> candidate = userRepository.findByEmail(email).filter(User::hasPassword);
+        if (candidate.isEmpty() || !passwordHasher.matches(rawPassword, candidate.get().getPasswordHash())) {
+            eventPublisher.publish(new LoginFailedEvent(UUID.randomUUID(), clock.instant(), email));
             throw new InvalidCredentialsException();
         }
-        return issueTokenPair(user);
+        User user = candidate.get();
+        TokenPair tokens = issueTokenPair(user);
+        eventPublisher.publish(
+                new LoginSucceededEvent(UUID.randomUUID(), clock.instant(), user.getId()));
+        return tokens;
     }
 
     @Transactional
@@ -98,11 +123,18 @@ public class AuthenticationService {
                 userRepository
                         .findByGoogleSub(identity.sub())
                         .or(() -> linkIfVerifiedEmailMatch(identity))
-                        .orElseGet(
-                                () ->
-                                        userRepository.save(
-                                                User.registerWithGoogle(identity.email(), identity.sub())));
-        return issueTokenPair(user);
+                        .orElseGet(() -> registerGoogleUser(identity));
+        TokenPair tokens = issueTokenPair(user);
+        eventPublisher.publish(
+                new LoginSucceededEvent(UUID.randomUUID(), clock.instant(), user.getId()));
+        return tokens;
+    }
+
+    private User registerGoogleUser(GoogleIdentity identity) {
+        User saved = userRepository.save(User.registerWithGoogle(identity.email(), identity.sub()));
+        eventPublisher.publish(
+                new UserRegisteredEvent(UUID.randomUUID(), clock.instant(), saved.getId(), saved.getEmail()));
+        return saved;
     }
 
     private Optional<User> linkIfVerifiedEmailMatch(GoogleIdentity identity) {
@@ -134,7 +166,10 @@ public class AuthenticationService {
         stored.revoke();
         refreshTokenRepository.save(stored);
 
-        return issueTokenPair(user);
+        TokenPair tokens = issueTokenPair(user);
+        eventPublisher.publish(
+                new TokenRefreshedEvent(UUID.randomUUID(), clock.instant(), user.getId()));
+        return tokens;
     }
 
     @Transactional
@@ -147,6 +182,8 @@ public class AuthenticationService {
                         token -> {
                             token.revoke();
                             refreshTokenRepository.save(token);
+                            eventPublisher.publish(
+                                    new LoggedOutEvent(UUID.randomUUID(), clock.instant(), callerId));
                         });
     }
 
@@ -161,6 +198,8 @@ public class AuthenticationService {
         }
         user.changePassword(passwordHasher.hash(newPassword));
         userRepository.save(user);
+        eventPublisher.publish(
+                new PasswordChangedEvent(UUID.randomUUID(), clock.instant(), user.getId()));
     }
 
     private TokenPair issueTokenPair(User user) {
