@@ -36,6 +36,13 @@ public class User {
         return user;
     }
 
+    /** Registers a local administrator account (created by the startup seed, never via signup). */
+    public static User registerAdmin(String email, String passwordHash) {
+        User user = register(email, passwordHash);
+        user.role = Role.ADMIN;
+        return user;
+    }
+
     /** Registers a new account that authenticates only through Google (no local password). */
     public static User registerWithGoogle(String email, String googleSub) {
         User user = new User();
