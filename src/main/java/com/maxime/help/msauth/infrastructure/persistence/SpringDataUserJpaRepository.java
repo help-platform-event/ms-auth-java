@@ -1,5 +1,6 @@
 package com.maxime.help.msauth.infrastructure.persistence;
 
+import com.maxime.help.msauth.domain.model.Role;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +16,8 @@ interface SpringDataUserJpaRepository extends JpaRepository<UserJpaEntity, UUID>
     Optional<UserJpaEntity> findByGoogleSub(String googleSub);
 
     boolean existsByEmail(String email);
+
+    boolean existsByRole(Role role);
 
     /** Fetches the profiles in the same query, so mapping a batch of users doesn't issue N+1 selects. */
     @EntityGraph(attributePaths = "profile")

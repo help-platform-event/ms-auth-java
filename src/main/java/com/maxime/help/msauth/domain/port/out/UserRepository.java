@@ -1,5 +1,6 @@
 package com.maxime.help.msauth.domain.port.out;
 
+import com.maxime.help.msauth.domain.model.Role;
 import com.maxime.help.msauth.domain.model.User;
 import java.util.Collection;
 import java.util.List;
@@ -20,6 +21,8 @@ public interface UserRepository {
     boolean existsByEmail(String email);
 
     boolean existsById(UUID id);
+
+    boolean existsByRole(Role role);
 
     /** Users whose id is in {@code ids}; unknown ids are silently skipped. */
     List<User> findAllByIds(Collection<UUID> ids);
