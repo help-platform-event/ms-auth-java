@@ -2,6 +2,8 @@ package com.maxime.help.msauth.infrastructure.persistence;
 
 import com.maxime.help.msauth.domain.model.User;
 import com.maxime.help.msauth.domain.port.out.UserRepository;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -49,5 +51,23 @@ class UserRepositoryAdapter implements UserRepository {
     @Override
     public boolean existsByEmail(String email) {
         return jpa.existsByEmail(email);
+    }
+
+    @Override
+    public boolean existsById(UUID id) {
+        return jpa.existsById(id);
+    }
+
+    @Override
+    public List<User> findAllByIds(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return jpa.findAllByIdIn(ids).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<User> findAll() {
+        return jpa.findAllBy().stream().map(mapper::toDomain).toList();
     }
 }
