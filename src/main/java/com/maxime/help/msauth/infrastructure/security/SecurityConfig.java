@@ -12,6 +12,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.maxime.help.msauth.domain.port.out.AccessTokenIssuer;
 
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
@@ -41,13 +42,21 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(
                         auth
-                        -> auth.requestMatchers(
+                        -> auth
+                                // sendError() (e.g. the default 403 AccessDeniedHandler) makes the
+                                // container re-dispatch to /error, where the JWT filter doesn't run
+                                // again: without this, that anonymous dispatch turns a 403 into a 401.
+                                .dispatcherTypeMatchers(DispatcherType.ERROR)
+                                .permitAll()
+                                .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/auth/signup",
                                 "/api/auth/login",
                                 "/api/auth/google",
                                 "/api/auth/refresh")
                                 .permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/users")
+                                .hasRole("ADMIN")
                                 .anyRequest()
                                 .authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
