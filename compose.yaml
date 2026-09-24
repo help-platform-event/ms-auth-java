@@ -24,9 +24,11 @@ services:
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_LISTENERS: 'PLAINTEXT://:9092,CONTROLLER://:9093'
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://localhost:9094'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
+      # PLAINTEXT is for the host (spring-boot:run, via localhost:9094); INTERNAL is for other
+      # containers on the compose network (the `app` service), which can't reach "localhost:9094".
+      KAFKA_LISTENERS: 'PLAINTEXT://:9092,CONTROLLER://:9093,INTERNAL://:29092'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://localhost:9094,INTERNAL://kafka:29092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT'
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@localhost:9093'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -45,4 +47,28 @@ services:
       ADMINER_DEFAULT_SERVER: mysql
     depends_on:
       mysql:
+        condition: service_healthy
+
+  # The app itself, from the Dockerfile. Behind the `app` profile so spring-boot:run (whose
+  # docker-compose integration activates no profile) never starts it; run the whole containerised
+  # stack with `docker compose --profile app up --build`. All values below are dev-only.
+  app:
+    build: .
+    profiles: ['app']
+    ports:
+      - '8080:8080'
+    environment:
+      SPRING_DATASOURCE_URL: 'jdbc:mysql://mysql:3306/ms_auth'
+      SPRING_DATASOURCE_USERNAME: 'ms_auth'
+      SPRING_DATASOURCE_PASSWORD: 'ms_auth'
+      KAFKA_BOOTSTRAP_SERVERS: 'kafka:29092'
+      JWT_SECRET: 'c2FtcGxlLWRldi1vbmx5LXNlY3JldC1kby1ub3QtdXNlLWluLXByb2QtMzJieXRlcyE='
+      GOOGLE_CLIENT_ID: 'dev-placeholder-client-id'
+      GOOGLE_CLIENT_SECRET: 'dev-placeholder-client-secret'
+      ADMIN_EMAIL: 'admin@example.com'
+      ADMIN_PASSWORD: 'Admin123!!'
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
