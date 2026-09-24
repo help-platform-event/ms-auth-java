@@ -14,3 +14,35 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  kafka:
+    image: 'apache/kafka:3.9.0'
+    # Single-node KRaft mode: no separate Zookeeper. Host port 9094 (not 9092) to avoid clashing
+    # with any Kafka already running locally, same reasoning as MySQL's 3307 above.
+    ports:
+      - '9094:9092'
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_LISTENERS: 'PLAINTEXT://:9092,CONTROLLER://:9093'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://localhost:9094'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@localhost:9093'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ['CMD-SHELL', '/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  adminer:
+    image: 'adminer:4'
+    # Host port 8081 (Adminer listens on 8080 internally) - dev-only, no specific clash to dodge.
+    ports:
+      - '8081:8080'
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+    depends_on:
+      mysql:
+        condition: service_healthy
