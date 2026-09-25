@@ -1,5 +1,7 @@
 package com.maxime.help.msauth.web.dto;
 
+import com.maxime.help.msauth.domain.model.PasswordPolicy;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

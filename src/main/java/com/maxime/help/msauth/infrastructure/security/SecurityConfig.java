@@ -55,6 +55,8 @@ public class SecurityConfig {
                                 "/api/auth/google",
                                 "/api/auth/refresh")
                                 .permitAll()
+                                .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**")
+                                .permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/users")
                                 .hasRole("ADMIN")
                                 .anyRequest()

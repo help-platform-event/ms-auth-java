@@ -29,10 +29,14 @@ import org.testcontainers.mysql.MySQLContainer;
  * Drives the profile, settings and user-lookup endpoints over the real HTTP layer against a real
  * MySQL (and Kafka, which signup/login publish to). Proves the V2 migration, the Hibernate mapping
  * of {@code user_settings}, and the batch lookup's fetch graph; see MeControllerTest /
- * UserControllerTest for the mocked coverage of the JSON contract.
+ * UserControllerTest for the mocked coverage of the JSON contract. Also boots with the admin seed
+ * configured, and checks the public Actuator health endpoint.
  */
 @Testcontainers
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = {"app.seed.admin.email=" + UserSettingsFlowIntegrationTest.ADMIN_EMAIL,
+                      "app.seed.admin.password=" + UserSettingsFlowIntegrationTest.ADMIN_PASSWORD})
 class UserSettingsFlowIntegrationTest {
 
     // Same images as AuthenticationFlowIntegrationTest (see there for why Kafka is pinned to 4.0.0).
@@ -43,6 +47,9 @@ class UserSettingsFlowIntegrationTest {
     @Container
     @ServiceConnection
     static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:4.0.0");
+
+    static final String ADMIN_EMAIL = "admin@example.com";
+    static final String ADMIN_PASSWORD = "Admin123!!";
 
     @LocalServerPort
     int port;
@@ -180,6 +187,28 @@ class UserSettingsFlowIntegrationTest {
                 .exchange()
                 .expectStatus()
                 .isForbidden();
+
+        // --- The startup seed created an admin, who may list every user ---
+        client.get()
+                .uri("/api/users")
+                .header("Authorization", "Bearer " + logIn(ADMIN_EMAIL, ADMIN_PASSWORD))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody()
+                .jsonPath("$[?(@.email == '" + email + "')]").exists()
+                .jsonPath("$[?(@.email == '" + ADMIN_EMAIL + "')]").exists();
+    }
+
+    @Test
+    void health_isPublicAndUp() {
+        client.get()
+                .uri("/actuator/health")
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("UP");
     }
 
     private UUID signUp(String email, String firstName, String lastName) {
@@ -195,10 +224,14 @@ class UserSettingsFlowIntegrationTest {
     }
 
     private String logIn(String email) {
+        return logIn(email, "Passw0rd1!!");
+    }
+
+    private String logIn(String email, String password) {
         return client.post()
                 .uri("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new SigninRequest(email, "Passw0rd1!!"))
+                .body(new SigninRequest(email, password))
                 .exchange()
                 .expectStatus()
                 .isOk()

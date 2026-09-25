@@ -1,5 +1,6 @@
 package com.maxime.help.msauth.infrastructure.persistence;
 
+import com.maxime.help.msauth.domain.model.Role;
 import com.maxime.help.msauth.domain.model.User;
 import com.maxime.help.msauth.domain.port.out.UserRepository;
 import java.util.Collection;
@@ -56,6 +57,11 @@ class UserRepositoryAdapter implements UserRepository {
     @Override
     public boolean existsById(UUID id) {
         return jpa.existsById(id);
+    }
+
+    @Override
+    public boolean existsByRole(Role role) {
+        return jpa.existsByRole(role);
     }
 
     @Override

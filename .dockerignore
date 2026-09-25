@@ -1,0 +1,10 @@
+target/
+.git/
+.github/
+.vscode/
+.idea/
+HELP.md
+CLAUDE.md
+compose.yaml
+Dockerfile
+.dockerignore

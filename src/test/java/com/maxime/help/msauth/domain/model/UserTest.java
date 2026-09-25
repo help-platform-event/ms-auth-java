@@ -22,6 +22,15 @@ class UserTest {
     }
 
     @Test
+    void registerAdmin_createsLocalUserWithAdminRole() {
+        User admin = User.registerAdmin("admin@example.com", "hash");
+
+        assertThat(admin.getRole()).isEqualTo(Role.ADMIN);
+        assertThat(admin.hasPassword()).isTrue();
+        assertThat(admin.getProfile()).isNotNull();
+    }
+
+    @Test
     void registerWithGoogle_createsPasswordlessUser() {
         User user = User.registerWithGoogle("bob@example.com", "google-sub-123");
 
