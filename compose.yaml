@@ -63,8 +63,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: 'ms_auth'
       KAFKA_BOOTSTRAP_SERVERS: 'kafka:29092'
       JWT_SECRET: 'c2FtcGxlLWRldi1vbmx5LXNlY3JldC1kby1ub3QtdXNlLWluLXByb2QtMzJieXRlcyE='
-      GOOGLE_CLIENT_ID: 'dev-placeholder-client-id'
-      GOOGLE_CLIENT_SECRET: 'dev-placeholder-client-secret'
+      # Real values come from the gitignored .env next to this file (see .env.example).
+      GOOGLE_CLIENT_ID: '${GOOGLE_CLIENT_ID:-dev-placeholder-client-id}'
+      GOOGLE_CLIENT_SECRET: '${GOOGLE_CLIENT_SECRET:-dev-placeholder-client-secret}'
       ADMIN_EMAIL: 'admin@example.com'
       ADMIN_PASSWORD: 'Admin123!!'
     depends_on:
