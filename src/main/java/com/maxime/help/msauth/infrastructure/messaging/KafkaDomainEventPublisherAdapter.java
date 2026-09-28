@@ -1,11 +1,7 @@
 package com.maxime.help.msauth.infrastructure.messaging;
 
 import com.maxime.help.msauth.domain.event.DomainEvent;
-import com.maxime.help.msauth.domain.event.LoggedOutEvent;
-import com.maxime.help.msauth.domain.event.LoginFailedEvent;
-import com.maxime.help.msauth.domain.event.LoginSucceededEvent;
 import com.maxime.help.msauth.domain.event.PasswordChangedEvent;
-import com.maxime.help.msauth.domain.event.TokenRefreshedEvent;
 import com.maxime.help.msauth.domain.event.UserRegisteredEvent;
 import com.maxime.help.msauth.domain.event.UserSettingsChangedEvent;
 import com.maxime.help.msauth.domain.port.out.DomainEventPublisher;
@@ -52,10 +48,6 @@ class KafkaDomainEventPublisherAdapter implements DomainEventPublisher {
         return switch (event) {
             case UserRegisteredEvent e -> AuthTopics.USER_REGISTERED;
             case PasswordChangedEvent e -> AuthTopics.PASSWORD_CHANGED;
-            case LoginFailedEvent e -> AuthTopics.LOGIN_FAILED;
-            case LoginSucceededEvent e -> AuthTopics.LOGIN_SUCCEEDED;
-            case TokenRefreshedEvent e -> AuthTopics.TOKEN_REFRESHED;
-            case LoggedOutEvent e -> AuthTopics.LOGGED_OUT;
             case UserSettingsChangedEvent e -> AuthTopics.USER_SETTINGS_CHANGED;
         };
     }
@@ -64,10 +56,6 @@ class KafkaDomainEventPublisherAdapter implements DomainEventPublisher {
         return switch (event) {
             case UserRegisteredEvent e -> e.userId().toString();
             case PasswordChangedEvent e -> e.userId().toString();
-            case LoginFailedEvent e -> e.email();
-            case LoginSucceededEvent e -> e.userId().toString();
-            case TokenRefreshedEvent e -> e.userId().toString();
-            case LoggedOutEvent e -> e.userId().toString();
             case UserSettingsChangedEvent e -> e.userId().toString();
         };
     }

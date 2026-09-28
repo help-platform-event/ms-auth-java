@@ -11,10 +11,6 @@ import java.util.UUID;
 public sealed interface DomainEvent
         permits UserRegisteredEvent,
                 PasswordChangedEvent,
-                LoginFailedEvent,
-                LoginSucceededEvent,
-                TokenRefreshedEvent,
-                LoggedOutEvent,
                 UserSettingsChangedEvent {
 
     UUID eventId();
