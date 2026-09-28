@@ -38,6 +38,18 @@ services:
       timeout: 5s
       retries: 10
 
+  # Web UI for the broker: topics, messages (key/value/offset), consumer groups and their lag.
+  kafka-ui:
+    image: 'kafbat/kafka-ui:latest'
+    ports:
+      - '8082:8080'
+    environment:
+      KAFKA_CLUSTERS_0_NAME: 'local'
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka:29092'
+    depends_on:
+      kafka:
+        condition: service_healthy
+
   adminer:
     image: 'adminer:4'
     # Host port 8081 (Adminer listens on 8080 internally) - dev-only, no specific clash to dodge.

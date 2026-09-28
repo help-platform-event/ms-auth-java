@@ -14,7 +14,8 @@ public sealed interface DomainEvent
                 LoginFailedEvent,
                 LoginSucceededEvent,
                 TokenRefreshedEvent,
-                LoggedOutEvent {
+                LoggedOutEvent,
+                UserSettingsChangedEvent {
 
     UUID eventId();
 
