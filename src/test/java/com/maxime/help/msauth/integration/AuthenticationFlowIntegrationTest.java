@@ -2,8 +2,6 @@ package com.maxime.help.msauth.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.maxime.help.msauth.application.service.TokenPair;
 import com.maxime.help.msauth.domain.event.LoggedOutEvent;
 import com.maxime.help.msauth.domain.event.LoginSucceededEvent;
@@ -47,6 +45,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.mysql.MySQLContainer;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Drives the real HTTP layer against a real MySQL + real Kafka broker (no mocking of infra) for
@@ -88,10 +87,9 @@ class AuthenticationFlowIntegrationTest {
     @Autowired
     PlatformTransactionManager transactionManager;
 
-    // Not @Autowired: this app context has no ObjectMapper bean (webmvc's Jackson support here
-    // doesn't expose one), so the test builds its own, registering the same jsr310 module the
-    // app relies on to serialize the events' Instant fields onto Kafka.
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    // Jackson 3, like the app's Kafka serializer (JacksonJsonSerializer): java.time support is
+    // built in, so the events' ISO-8601 Instant fields read back without any extra module.
+    private final JsonMapper jsonMapper = JsonMapper.builder().build();
 
     private RestTestClient client;
     private KafkaConsumer<String, String> eventConsumer;
@@ -254,7 +252,9 @@ class AuthenticationFlowIntegrationTest {
             ConsumerRecords<String, String> records = eventConsumer.poll(Duration.ofMillis(200));
             for (ConsumerRecord<String, String> record : records) {
                 if (record.topic().equals(topic) && expectedKey.equals(record.key())) {
-                    found.set(objectMapper.readValue(record.value(), eventType));
+                    // Wire format consumers rely on: occurredAt as an ISO-8601 string, not a number.
+                    assertThat(record.value()).containsPattern("\"occurredAt\":\"\\d{4}-\\d{2}-\\d{2}T");
+                    found.set(jsonMapper.readValue(record.value(), eventType));
                 }
             }
             assertThat(found.get()).isNotNull();
