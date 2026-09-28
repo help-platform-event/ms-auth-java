@@ -48,24 +48,4 @@ class KafkaTopicsConfig {
     NewTopic passwordChangedTopic() {
         return TopicBuilder.name(AuthTopics.PASSWORD_CHANGED).partitions(PARTITIONS).build();
     }
-
-    @Bean
-    NewTopic loginFailedTopic() {
-        return TopicBuilder.name(AuthTopics.LOGIN_FAILED).partitions(PARTITIONS).build();
-    }
-
-    @Bean
-    NewTopic loginSucceededTopic() {
-        return TopicBuilder.name(AuthTopics.LOGIN_SUCCEEDED).partitions(PARTITIONS).build();
-    }
-
-    @Bean
-    NewTopic tokenRefreshedTopic() {
-        return TopicBuilder.name(AuthTopics.TOKEN_REFRESHED).partitions(PARTITIONS).build();
-    }
-
-    @Bean
-    NewTopic loggedOutTopic() {
-        return TopicBuilder.name(AuthTopics.LOGGED_OUT).partitions(PARTITIONS).build();
-    }
 }

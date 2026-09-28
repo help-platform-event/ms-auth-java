@@ -14,11 +14,7 @@ import com.maxime.help.msauth.application.exception.InvalidCredentialsException;
 import com.maxime.help.msauth.application.exception.InvalidRefreshTokenException;
 import com.maxime.help.msauth.application.exception.PasswordChangeNotAllowedException;
 import com.maxime.help.msauth.domain.event.DomainEvent;
-import com.maxime.help.msauth.domain.event.LoggedOutEvent;
-import com.maxime.help.msauth.domain.event.LoginFailedEvent;
-import com.maxime.help.msauth.domain.event.LoginSucceededEvent;
 import com.maxime.help.msauth.domain.event.PasswordChangedEvent;
-import com.maxime.help.msauth.domain.event.TokenRefreshedEvent;
 import com.maxime.help.msauth.domain.event.UserRegisteredEvent;
 import com.maxime.help.msauth.domain.model.RefreshToken;
 import com.maxime.help.msauth.domain.model.Role;
@@ -83,13 +79,6 @@ class AuthenticationServiceTest {
         verify(eventPublisher).publish(captor.capture());
         assertThat(captor.getValue()).isInstanceOf(type);
         return type.cast(captor.getValue());
-    }
-
-    /** For scenarios that publish more than one event, in call order. */
-    private java.util.List<DomainEvent> capturePublishedEvents(int expectedCount) {
-        ArgumentCaptor<DomainEvent> captor = ArgumentCaptor.forClass(DomainEvent.class);
-        verify(eventPublisher, org.mockito.Mockito.times(expectedCount)).publish(captor.capture());
-        return captor.getAllValues();
     }
 
     private static User persistedUser(UUID id, String email, String passwordHash) {
@@ -178,8 +167,6 @@ class AuthenticationServiceTest {
 
         assertThat(result.accessToken()).isEqualTo("access-token");
         assertThat(result.refreshToken()).isNotBlank();
-        LoginSucceededEvent event = capturePublishedEvent(LoginSucceededEvent.class);
-        assertThat(event.userId()).isEqualTo(userId);
     }
 
     @Test
@@ -188,9 +175,6 @@ class AuthenticationServiceTest {
 
         assertThatThrownBy(() -> service.login("nobody@example.com", "raw-password"))
                 .isInstanceOf(InvalidCredentialsException.class);
-
-        LoginFailedEvent event = capturePublishedEvent(LoginFailedEvent.class);
-        assertThat(event.email()).isEqualTo("nobody@example.com");
     }
 
     @Test
@@ -201,9 +185,6 @@ class AuthenticationServiceTest {
 
         assertThatThrownBy(() -> service.login("alice@example.com", "wrong-password"))
                 .isInstanceOf(InvalidCredentialsException.class);
-
-        LoginFailedEvent event = capturePublishedEvent(LoginFailedEvent.class);
-        assertThat(event.email()).isEqualTo("alice@example.com");
     }
 
     @Test
@@ -224,25 +205,19 @@ class AuthenticationServiceTest {
 
         assertThatThrownBy(() -> service.login("bob@example.com", "any-password"))
                 .isInstanceOf(InvalidCredentialsException.class);
-
-        capturePublishedEvent(LoginFailedEvent.class);
     }
 
     /**
-     * Regression guard: without {@code noRollbackFor}, a propagated {@link
-     * InvalidCredentialsException} marks the transaction rollback-only, which silently drops
-     * {@link LoginFailedEvent} (the Kafka adapter only sends after a commit) and — separately —
-     * plain {@code @Transactional} must stay present at all, or the Hibernate session backing the
-     * lazy {@code Profile} association closes before {@code UserRepositoryAdapter.findByEmail}
-     * finishes mapping, throwing {@code LazyInitializationException}.
+     * Regression guard: {@code @Transactional} must stay on {@code login}, or the Hibernate
+     * session backing the lazy {@code Profile} association closes before {@code
+     * UserRepositoryAdapter.findByEmail} finishes mapping, throwing {@code
+     * LazyInitializationException}.
      */
     @Test
-    void login_isTransactionalAndDoesNotRollBackOnInvalidCredentials() throws NoSuchMethodException {
+    void login_isTransactional() throws NoSuchMethodException {
         Method login = AuthenticationService.class.getMethod("login", String.class, String.class);
-        Transactional annotation = login.getAnnotation(Transactional.class);
 
-        assertThat(annotation).isNotNull();
-        assertThat(annotation.noRollbackFor()).containsExactly(InvalidCredentialsException.class);
+        assertThat(login.getAnnotation(Transactional.class)).isNotNull();
     }
 
     // --- refresh ---
@@ -268,8 +243,6 @@ class AuthenticationServiceTest {
         verify(refreshTokenRepository, org.mockito.Mockito.times(2)).save(captor.capture());
         assertThat(captor.getAllValues().get(0).isRevoked()).isTrue();
         assertThat(captor.getAllValues().get(1).getId()).isNull();
-        TokenRefreshedEvent event = capturePublishedEvent(TokenRefreshedEvent.class);
-        assertThat(event.userId()).isEqualTo(userId);
     }
 
     @Test
@@ -332,8 +305,6 @@ class AuthenticationServiceTest {
         ArgumentCaptor<RefreshToken> captor = ArgumentCaptor.forClass(RefreshToken.class);
         verify(refreshTokenRepository).save(captor.capture());
         assertThat(captor.getValue().isRevoked()).isTrue();
-        LoggedOutEvent event = capturePublishedEvent(LoggedOutEvent.class);
-        assertThat(event.userId()).isEqualTo(userId);
     }
 
     @Test
@@ -430,8 +401,6 @@ class AuthenticationServiceTest {
 
         assertThat(result.accessToken()).isEqualTo("access-token");
         verify(userRepository, never()).save(any());
-        LoginSucceededEvent event = capturePublishedEvent(LoginSucceededEvent.class);
-        assertThat(event.userId()).isEqualTo(userId);
     }
 
     @Test
@@ -454,8 +423,6 @@ class AuthenticationServiceTest {
         verify(userRepository).save(captor.capture());
         assertThat(captor.getValue().getGoogleSub()).isEqualTo("google-sub");
         verify(eventPublisher, never()).publish(any(UserRegisteredEvent.class));
-        LoginSucceededEvent event = capturePublishedEvent(LoginSucceededEvent.class);
-        assertThat(event.userId()).isEqualTo(userId);
     }
 
     @Test
@@ -476,9 +443,7 @@ class AuthenticationServiceTest {
         verify(userRepository).save(captor.capture());
         assertThat(captor.getValue().getGoogleSub()).isEqualTo("google-sub");
         assertThat(captor.getValue().hasPassword()).isFalse();
-        java.util.List<DomainEvent> events = capturePublishedEvents(2);
-        assertThat(events.get(0)).isInstanceOf(UserRegisteredEvent.class);
-        assertThat(events.get(1)).isInstanceOf(LoginSucceededEvent.class);
+        capturePublishedEvent(UserRegisteredEvent.class);
     }
 
     @Test
@@ -499,8 +464,6 @@ class AuthenticationServiceTest {
         verify(userRepository).save(captor.capture());
         assertThat(captor.getValue().getEmail()).isEqualTo("new@example.com");
         assertThat(captor.getValue().getGoogleSub()).isEqualTo("google-sub");
-        java.util.List<DomainEvent> events = capturePublishedEvents(2);
-        assertThat(events.get(0)).isInstanceOf(UserRegisteredEvent.class);
-        assertThat(events.get(1)).isInstanceOf(LoginSucceededEvent.class);
+        capturePublishedEvent(UserRegisteredEvent.class);
     }
 }

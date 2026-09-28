@@ -3,9 +3,6 @@ package com.maxime.help.msauth.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.maxime.help.msauth.application.service.TokenPair;
-import com.maxime.help.msauth.domain.event.LoggedOutEvent;
-import com.maxime.help.msauth.domain.event.LoginSucceededEvent;
-import com.maxime.help.msauth.domain.event.TokenRefreshedEvent;
 import com.maxime.help.msauth.domain.event.UserRegisteredEvent;
 import com.maxime.help.msauth.domain.model.RefreshToken;
 import com.maxime.help.msauth.domain.model.User;
@@ -70,7 +67,7 @@ class AuthenticationFlowIntegrationTest {
     static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:4.0.0");
 
     private static final List<String> AUTH_TOPICS =
-            List.of("auth.user.registered", "auth.login.succeeded", "auth.token.refreshed", "auth.logout");
+            List.of("auth.user.registered");
 
     @LocalServerPort
     int port;
@@ -129,33 +126,18 @@ class AuthenticationFlowIntegrationTest {
                 UserRegisteredEvent.class,
                 event -> assertThat(event.email()).isEqualTo(email));
 
-        // --- Step 2: login issues a token pair and publishes LoginSucceededEvent ---
+        // --- Step 2: login issues a token pair ---
         TokenPair firstLogin = whenUserLogsIn(email, password);
         thenRefreshTokenRowIsPersisted(userId, firstLogin.refreshToken(), /* expectedRevoked */ false);
-        thenEventIsPublished(
-                "auth.login.succeeded",
-                userId.toString(),
-                LoginSucceededEvent.class,
-                event -> assertThat(event.userId()).isEqualTo(userId));
 
-        // --- Step 3: refresh rotates the token and publishes TokenRefreshedEvent ---
+        // --- Step 3: refresh rotates the token ---
         TokenPair refreshed = whenUserRefreshesToken(firstLogin.refreshToken());
         thenRefreshTokenRowIsRevoked(firstLogin.refreshToken());
         thenRefreshTokenRowIsPersisted(userId, refreshed.refreshToken(), /* expectedRevoked */ false);
-        thenEventIsPublished(
-                "auth.token.refreshed",
-                userId.toString(),
-                TokenRefreshedEvent.class,
-                event -> assertThat(event.userId()).isEqualTo(userId));
 
-        // --- Step 4: logout revokes the current token and publishes LoggedOutEvent ---
+        // --- Step 4: logout revokes the current token ---
         whenUserLogsOut(refreshed.accessToken(), refreshed.refreshToken());
         thenRefreshTokenRowIsRevoked(refreshed.refreshToken());
-        thenEventIsPublished(
-                "auth.logout",
-                userId.toString(),
-                LoggedOutEvent.class,
-                event -> assertThat(event.userId()).isEqualTo(userId));
     }
 
     // --- when: perform the HTTP call, assert its status, return what the next step needs ---

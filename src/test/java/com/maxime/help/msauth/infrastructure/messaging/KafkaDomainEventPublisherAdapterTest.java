@@ -5,11 +5,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.maxime.help.msauth.domain.event.DomainEvent;
-import com.maxime.help.msauth.domain.event.LoggedOutEvent;
-import com.maxime.help.msauth.domain.event.LoginFailedEvent;
-import com.maxime.help.msauth.domain.event.LoginSucceededEvent;
 import com.maxime.help.msauth.domain.event.PasswordChangedEvent;
-import com.maxime.help.msauth.domain.event.TokenRefreshedEvent;
 import com.maxime.help.msauth.domain.event.UserRegisteredEvent;
 import com.maxime.help.msauth.domain.event.UserSettingsChangedEvent;
 import com.maxime.help.msauth.domain.model.Availability;
@@ -67,42 +63,6 @@ class KafkaDomainEventPublisherAdapterTest {
         adapter.publish(event);
 
         verify(kafkaTemplate).send("auth.password.changed", USER_ID.toString(), event);
-    }
-
-    @Test
-    void publish_sendsLoginFailedEventKeyedByEmail() {
-        LoginFailedEvent event = new LoginFailedEvent(UUID.randomUUID(), NOW, "alice@example.com");
-
-        adapter.publish(event);
-
-        verify(kafkaTemplate).send("auth.login.failed", "alice@example.com", event);
-    }
-
-    @Test
-    void publish_sendsLoginSucceededEventToItsTopic() {
-        LoginSucceededEvent event = new LoginSucceededEvent(UUID.randomUUID(), NOW, USER_ID);
-
-        adapter.publish(event);
-
-        verify(kafkaTemplate).send("auth.login.succeeded", USER_ID.toString(), event);
-    }
-
-    @Test
-    void publish_sendsTokenRefreshedEventToItsTopic() {
-        TokenRefreshedEvent event = new TokenRefreshedEvent(UUID.randomUUID(), NOW, USER_ID);
-
-        adapter.publish(event);
-
-        verify(kafkaTemplate).send("auth.token.refreshed", USER_ID.toString(), event);
-    }
-
-    @Test
-    void publish_sendsLoggedOutEventToItsTopic() {
-        LoggedOutEvent event = new LoggedOutEvent(UUID.randomUUID(), NOW, USER_ID);
-
-        adapter.publish(event);
-
-        verify(kafkaTemplate).send("auth.logout", USER_ID.toString(), event);
     }
 
     @Test
