@@ -25,10 +25,8 @@ Every event is published **after the database transaction commits**, as JSON wit
 | `auth.user.registered` | Signup, first Google login, admin seed | Kept forever: the only source of users' emails for consumers |
 | `auth.user.settings-changed` | Availability or notification settings updated | Full snapshot, log-compacted (the latest one per user is kept) |
 | `auth.password.changed` | Password changed | |
-| `auth.login.succeeded` / `auth.login.failed` | Login attempts | |
-| `auth.token.refreshed` / `auth.logout` | Session lifecycle | |
 
-The topics are declared at startup with 3 partitions (`KafkaTopicsConfig`). If Kafka is down, a send gives up after 5 s instead of blocking the request for a minute.
+Only events that a consumer uses are published (today: `ms-notification-java`). The topics are declared at startup with 3 partitions (`KafkaTopicsConfig`): the service that publishes a topic is the one that declares it. If Kafka is down, a send gives up after 5 s instead of blocking the request for a minute.
 
 ## Run
 
