@@ -32,6 +32,18 @@ class KafkaTopicsConfig {
                 .build();
     }
 
+    /**
+     * Log-compacted: Kafka eventually keeps only the latest message per key (user id), so the
+     * topic always holds every user's current settings snapshot, however old.
+     */
+    @Bean
+    NewTopic userSettingsChangedTopic() {
+        return TopicBuilder.name(AuthTopics.USER_SETTINGS_CHANGED)
+                .partitions(PARTITIONS)
+                .compact()
+                .build();
+    }
+
     @Bean
     NewTopic passwordChangedTopic() {
         return TopicBuilder.name(AuthTopics.PASSWORD_CHANGED).partitions(PARTITIONS).build();

@@ -7,6 +7,7 @@ import com.maxime.help.msauth.domain.event.LoginSucceededEvent;
 import com.maxime.help.msauth.domain.event.PasswordChangedEvent;
 import com.maxime.help.msauth.domain.event.TokenRefreshedEvent;
 import com.maxime.help.msauth.domain.event.UserRegisteredEvent;
+import com.maxime.help.msauth.domain.event.UserSettingsChangedEvent;
 import com.maxime.help.msauth.domain.port.out.DomainEventPublisher;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -55,6 +56,7 @@ class KafkaDomainEventPublisherAdapter implements DomainEventPublisher {
             case LoginSucceededEvent e -> AuthTopics.LOGIN_SUCCEEDED;
             case TokenRefreshedEvent e -> AuthTopics.TOKEN_REFRESHED;
             case LoggedOutEvent e -> AuthTopics.LOGGED_OUT;
+            case UserSettingsChangedEvent e -> AuthTopics.USER_SETTINGS_CHANGED;
         };
     }
 
@@ -66,6 +68,7 @@ class KafkaDomainEventPublisherAdapter implements DomainEventPublisher {
             case LoginSucceededEvent e -> e.userId().toString();
             case TokenRefreshedEvent e -> e.userId().toString();
             case LoggedOutEvent e -> e.userId().toString();
+            case UserSettingsChangedEvent e -> e.userId().toString();
         };
     }
 }

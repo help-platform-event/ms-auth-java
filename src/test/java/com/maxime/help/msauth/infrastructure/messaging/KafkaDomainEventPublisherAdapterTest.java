@@ -11,6 +11,9 @@ import com.maxime.help.msauth.domain.event.LoginSucceededEvent;
 import com.maxime.help.msauth.domain.event.PasswordChangedEvent;
 import com.maxime.help.msauth.domain.event.TokenRefreshedEvent;
 import com.maxime.help.msauth.domain.event.UserRegisteredEvent;
+import com.maxime.help.msauth.domain.event.UserSettingsChangedEvent;
+import com.maxime.help.msauth.domain.model.Availability;
+import com.maxime.help.msauth.domain.model.NotificationSettings;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -100,6 +103,16 @@ class KafkaDomainEventPublisherAdapterTest {
         adapter.publish(event);
 
         verify(kafkaTemplate).send("auth.logout", USER_ID.toString(), event);
+    }
+
+    @Test
+    void publish_sendsUserSettingsChangedEventKeyedByUserId() {
+        UserSettingsChangedEvent event = new UserSettingsChangedEvent(
+                UUID.randomUUID(), NOW, USER_ID, Availability.allDays(), NotificationSettings.defaults());
+
+        adapter.publish(event);
+
+        verify(kafkaTemplate).send("auth.user.settings-changed", USER_ID.toString(), event);
     }
 
     // --- transaction-synchronization behavior ---
