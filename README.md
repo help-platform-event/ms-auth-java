@@ -30,13 +30,7 @@ Only events that a consumer uses are published (today: `ms-notification-java`). 
 
 ## Run
 
-### Full stack (recommended)
-
-From [`event-app`](https://github.com/help-platform-event/event-app), with this repo (and `ms-notification-java`) cloned next to it:
-
-```bash
-pnpm stack:up
-```
+To run it with the rest of the platform (Gateway, Front, notifications), see the [organization page](https://github.com/help-platform-event).
 
 ### Alone, on the host (hot reload)
 
