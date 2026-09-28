@@ -49,12 +49,12 @@ class KafkaDomainEventPublisherAdapter implements DomainEventPublisher {
 
     private static String topicFor(DomainEvent event) {
         return switch (event) {
-            case UserRegisteredEvent e -> "auth.user.registered";
-            case PasswordChangedEvent e -> "auth.password.changed";
-            case LoginFailedEvent e -> "auth.login.failed";
-            case LoginSucceededEvent e -> "auth.login.succeeded";
-            case TokenRefreshedEvent e -> "auth.token.refreshed";
-            case LoggedOutEvent e -> "auth.logout";
+            case UserRegisteredEvent e -> AuthTopics.USER_REGISTERED;
+            case PasswordChangedEvent e -> AuthTopics.PASSWORD_CHANGED;
+            case LoginFailedEvent e -> AuthTopics.LOGIN_FAILED;
+            case LoginSucceededEvent e -> AuthTopics.LOGIN_SUCCEEDED;
+            case TokenRefreshedEvent e -> AuthTopics.TOKEN_REFRESHED;
+            case LoggedOutEvent e -> AuthTopics.LOGGED_OUT;
         };
     }
 
